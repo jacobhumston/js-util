@@ -1,0 +1,16 @@
+{
+    "name": "@jacobhumston/util",
+    "module": "src/index.ts",
+    "devDependencies": {
+        "@types/bun": "latest",
+        "prettier": "^3.3.3"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
+    },
+    "scripts": {
+        "test": "bun run test/index.ts",
+        "format": "bunx prettier ./ --write"
+    },
+    "type": "module"
+}
