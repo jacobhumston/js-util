@@ -176,3 +176,9 @@ dist
 
 # Test Folder
 test/
+
+# Build Folder
+build/
+
+# Package Lock (NPM)
+package-lock.json

@@ -1,16 +1,23 @@
 {
     "name": "@jacobhumston/util",
     "module": "src/index.ts",
+    "main": "build/package/index.js",
+    "types": "build/package/types/index.d.ts",
     "devDependencies": {
         "@types/bun": "latest",
-        "prettier": "^3.3.3"
-    },
-    "peerDependencies": {
+        "prettier": "^3.3.3",
         "typescript": "^5.0.0"
     },
     "scripts": {
         "test": "bun run test/index.ts",
-        "format": "bunx prettier ./ --write"
+        "format": "bunx prettier ./ --write --ignore-path .prettierignore --cache",
+        "build": "bash ./build.bash",
+        "bt": "bun run build && bun run test"
     },
-    "type": "module"
+    "type": "module",
+    "files": [
+        "build/",
+        "LICENSE.txt",
+        "README.md"
+    ]
 }

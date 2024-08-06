@@ -6,13 +6,16 @@
         "module": "ESNext",
         "moduleDetection": "force",
         "jsx": "react-jsx",
-        "allowJs": true,
+        "allowJs": false,
 
         // Bundler mode
-        "moduleResolution": "bundler",
-        "allowImportingTsExtensions": true,
+        "allowImportingTsExtensions": false,
         "verbatimModuleSyntax": true,
-        "noEmit": true,
+        "rootDir": "./src/",
+        "outDir": "./build/package/",
+        "declaration": true,
+        "declarationMap": true,
+        "declarationDir": "./build/package/types/",
 
         // Best practices
         "strict": true,
@@ -23,5 +26,7 @@
         "noUnusedLocals": false,
         "noUnusedParameters": false,
         "noPropertyAccessFromIndexSignature": false
-    }
+    },
+
+    "include": ["src/**/*"]
 }

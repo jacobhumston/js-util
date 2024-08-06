@@ -3,8 +3,18 @@
  * Licensing details can be found in the LICENSE.txt file.
  */
 
+import { isNode } from './etc/browser-or-node.js';
+
 /** Type of logger. */
 export type LoggerType = 'info' | 'warn' | 'error' | 'debug' | 'success' | 'misc';
+
+/** An array of logger types. */
+export const loggerTypes: Array<LoggerType> = ['info', 'warn', 'error', 'debug', 'success', 'misc'];
+
+/** The largest logger type in string length. */
+export const largestLoggerTypeLength: number = Math.max(...loggerTypes.map((type) => type.length));
+/** The smallest logger type in string length. */
+export const smallestLoggerTypeLength: number = Math.min(...loggerTypes.map((type) => type.length));
 
 /**
  * Type of line/escape sequence to use.
@@ -25,10 +35,14 @@ export class Logger {
     public useColor: boolean;
     /** The function this logger uses to output to the console. */
     public consoleFunction: (message: string) => void;
-    /** Optional function which is called every time something is logged using `this.log`. */
+    /** Optional function which is called every time something is logged. */
     public onLog?: (type: LoggerType, message: string) => void;
     /** Optional override function for `this.getPrefixForType`. */
-    public getPrefixForTypeOverride?: (type: LoggerType, useColorOverride: boolean | null) => string;
+    public getPrefixForTypeOverride?: (
+        type: LoggerType,
+        useColorOverride: boolean | null,
+        overridePrefixText: string | null
+    ) => string;
 
     /**
      * @param useColor Override the default color setting. (Default: `true`)
@@ -36,7 +50,7 @@ export class Logger {
      */
     constructor(
         useColor: typeof this.useColor = true,
-        consoleFunction: typeof this.consoleFunction = process.stdout.write.bind(process.stdout)
+        consoleFunction: typeof this.consoleFunction = isNode ? process.stdout.write.bind(process.stdout) : console.log
     ) {
         this.useColor = useColor;
         this.consoleFunction = consoleFunction;
@@ -81,13 +95,21 @@ export class Logger {
      * Get the prefix of a log type.
      * @param type The log type.
      * @param useColorOverride If the prefix should be colored. If null, `this.useColor` is used. (Default: `null`)
+     * @param overridePrefixText Override the prefix text. (Default: `null`)
      * @returns The prefix.
      */
-    public getPrefixForType(type: LoggerType, useColorOverride: boolean | null = null): string {
-        if (this.getPrefixForTypeOverride) return this.getPrefixForTypeOverride(type, useColorOverride);
+    public getPrefixForType(
+        type: LoggerType,
+        useColorOverride: boolean | null = null,
+        overridePrefixText: string | null = null
+    ): string {
+        if (this.getPrefixForTypeOverride)
+            return this.getPrefixForTypeOverride(type, useColorOverride, overridePrefixText);
+        const prefixText = (overridePrefixText ?? type).toUpperCase();
+        const prefixString = `${prefixText}${' '.repeat(largestLoggerTypeLength - prefixText.length)} |`;
         return (useColorOverride == null ? this.useColor : useColorOverride)
-            ? this.colorType(type, `[${type}]:`)
-            : `[${type}]:`;
+            ? this.colorType(type, prefixString)
+            : prefixString;
     }
 
     /**
@@ -99,7 +121,59 @@ export class Logger {
         if (this.onLog) this.onLog(type, message);
         return this.plain(`${this.getPrefixForType(type)} ${message}`);
     }
+
+    /**
+     * Log JSON to the console. This function will stringify the object for you.
+     * @param type The type of message to log.
+     * @param objectOrArray The JSON object to log.
+     * @param indentLength The length of the indent. (Default: `4`)
+     */
+    public logJSON(type: LoggerType, objectOrArray: any, indentLength: number = 4): void {
+        if (this.onLog) this.onLog(type, JSON.stringify(objectOrArray));
+        let jsonText = JSON.stringify(objectOrArray, null, indentLength);
+
+        if (this.useColor) {
+            const colors = {
+                key: {
+                    color: '\x1b[34m',
+                    regex: /"([^"\\]*(\\.[^"\\]*)*)"\s*:/g,
+                },
+                string: {
+                    color: '\x1b[32m',
+                    regex: /"([^"\\]*(\\.[^"\\]*)*)"/g,
+                },
+                number: {
+                    color: '\x1b[33m',
+                    regex: /-?\d+(\.\d+)?([eE][+-]?\d+)?/g,
+                },
+                boolean: {
+                    color: '\x1b[33m',
+                    regex: /true|false/g,
+                },
+                null: {
+                    color: '\x1b[33m',
+                    regex: /null/g,
+                },
+            };
+
+            const matches: Array<{ text: string; color: string }> = [];
+            for (const [_, { color, regex }] of Object.entries(colors)) {
+                jsonText.replace(regex, (string) => {
+                    matches.push({ text: string, color });
+                    return '';
+                });
+            }
+
+            for (const match of matches) {
+                jsonText = jsonText.replaceAll(match.text, `${match.color}${match.text}\x1b[0m`);
+            }
+        }
+
+        return this.plain(
+            `${this.getPrefixForType(type)} ${jsonText.replaceAll('\n', `\n${this.getPrefixForType(type, null, '')} `)}`
+        );
+    }
 }
 
 /** Logger with default settings. */
-export const DefaultLogger = new Logger();
+export const defaultLogger = new Logger();
